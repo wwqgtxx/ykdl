@@ -4,7 +4,7 @@
 from importlib import import_module
 
 from .util.match import match1
-from .util.html import fake_headers
+from .util.html import get_headers, default_headers
 from .param import arg_parser
 from .util import log
 
@@ -57,7 +57,7 @@ def url_to_module(url):
     except(ImportError):
         from ykdl.compact import HTTPConnection
         conn = HTTPConnection(video_host)
-        conn.request("HEAD", video_url, headers=fake_headers)
+        conn.request("HEAD", video_url, headers=get_headers())
         res = conn.getresponse()
         location = res.getheader('location')
         if location is None:
@@ -94,6 +94,7 @@ def main():
     exit = 0
     for url in args.video_urls:
         try:
+            default_headers()
             m,u = url_to_module(url)
             if not u == url:
                 args.video_urls[args.video_urls.index(url)]  = u
