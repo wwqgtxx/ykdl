@@ -25,10 +25,6 @@ import sys
 import time
 import xml.dom.minidom
 
-
-if sys.version_info < (3,):
-    raise RuntimeError('at least Python 3.0 is required')
-
 gettext.install('danmaku2ass', os.path.join(os.path.dirname(os.path.abspath(os.path.realpath(sys.argv[0] or 'locale'))), 'locale'))
 
 
