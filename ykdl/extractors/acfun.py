@@ -4,6 +4,8 @@
 from ..util.html import get_content
 from ..util.match import match1, matchall
 from ..embedextractor import EmbedExtractor
+from ykdl.util.danmaku2ass import Danmaku2ASS
+from ykdl.compact import compact_tempfile
 
 import json
 
@@ -14,6 +16,14 @@ class Acfun(EmbedExtractor):
         html = get_content(self.url)
 
         sourceVid = match1(html, "data-vid=\"([a-zA-Z0-9=]+)\" data-scode=")
+
+        #process danmu:
+        danmu = get_content('http://danmu.aixifan.com/V3/{}/1/500'.format(sourceVid))
+        self.danmu = compact_tempfile(mode='w+t')
+        self.danmu.write(danmu)
+        self.ass = compact_tempfile(mode='w+t',suffix='.ass')
+        Danmaku2ASS(self.danmu.name, self.ass.name, 1080, 720)
+        self.subtitle = self.ass.name
 
         data = json.loads(get_content('http://www.acfun.tv/video/getVideo.aspx?id={}'.format(sourceVid)))
 

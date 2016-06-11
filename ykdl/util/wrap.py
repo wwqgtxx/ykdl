@@ -5,8 +5,11 @@ import subprocess
 import shlex
 from ykdl.compact import compact_tempfile
 
-def launch_player(player, urls):
-    subprocess.call(shlex.split(player) + list(urls))
+def launch_player(player, urls, subtitle):
+    if not subtitle:
+        subprocess.call(shlex.split(player) + list(urls))
+    else:
+        subprocess.call(shlex.split(player) + list(urls) + ['--sub-file', subtitle])
 
 def launch_ffmpeg(basename, ext, lenth):
     #build input

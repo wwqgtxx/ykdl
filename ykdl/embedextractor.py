@@ -48,6 +48,7 @@ class EmbedExtractor():
         if site in alias.keys():
             site = alias[site]
         s = import_module('.'.join(['ykdl','extractors',site])).site
+        s.subtitle = self.subtitle
         s.download(vid, self.param)
 
     def download_playlist(self, url, param):

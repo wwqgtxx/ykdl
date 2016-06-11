@@ -123,7 +123,7 @@ class VideoExtractor():
         if not urls:
             raise RuntimeError(self.name+ ': [Failed] Cannot extract video source from: ' + self.url if self.url else str(self.vid))
         elif self.param.player:
-            launch_player(self.param.player, urls)
+            launch_player(self.param.player, urls, self.subtitle)
         else:
             name = '_'.join([legitimize(self.title), stream_id, self.name_suffix()])
             if self.streams[stream_id]['container'] == 'm3u8':
