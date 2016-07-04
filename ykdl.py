@@ -9,6 +9,8 @@ except(ImportError):
     _filepath = sys.argv[0][:-_base_len]
     sys.path.insert(1, _filepath)
     import ykdl
+    
+from ykdl.__main__ import main
 
 if __name__ == '__main__':
-    ykdl.main()
+    main()
