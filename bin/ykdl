@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from argparse import ArgumentParser
-import socket
-import os
 import sys
-import json
+
+sys.path = sys.path[1:]
 
 sys.path = sys.path[1:]
 

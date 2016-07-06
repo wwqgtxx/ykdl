@@ -15,6 +15,7 @@ from ykdl.util.m3u8_wrap import load_m3u8
 from ykdl.util.download import save_urls
 from ykdl.version import __version__
 
+m3u8_internal = True
 args = None
 
 def arg_parser():
@@ -33,17 +34,36 @@ def arg_parser():
     global args
     args = parser.parse_args()
 
+def clean_slices(name, ext, lenth):
+    for i in range(lenth):
+        file_name = name + '_%d_.' % i + ext
+        os.remove(file_name)
+
 def download(urls, name, ext, live = False):
-    if ext == 'm3u8' and not live:
-        ext = 'mp4'
-        urls = load_m3u8(urls[0])
+    # ffmpeg can't handle local m3u8.
+    # only use ffmpeg to hanle m3u8.
+    global m3u8_internal
+    if not urls[0].startswith('http') or not ext == 'm3u8':
+        m3u8_internal = True
+    # for live video, always use ffmpeg to rebuild timeline.
     if live:
+        m3u8_internal = False
+    # change m3u8 ext to mp4
+    # rebuild urls when use internal downloader
+    if ext == 'm3u8':
+        ext = 'mp4'
+        if m3u8_internal:
+            urls = load_m3u8(urls[0])
+
+    # OK check m3u8_internal
+    if not m3u8_internal:
         launch_ffmpeg_download(urls[0], name + '.' + ext, live)
     else:
         save_urls(urls, name, ext)
         lenth = len(urls)
         if args.merge and lenth > 1:
             launch_ffmpeg(name, ext,lenth)
+            clean_slices(name, ext,lenth)
 
 def handle_videoinfo(info):
     if not args.json:
@@ -67,9 +87,13 @@ def main():
     if args.timeout:
         socket.setdefaulttimeout(args.timeout)
     if args.proxy:
+        http_proxy = args.proxy
+    else:
+        http_proxy = os.getenv('http_proxy')
+    if http_proxy:
         proxy_handler = ProxyHandler({
-            'http': args.proxy,
-            'https': args.proxy
+            'http': http_proxy,
+            'https': http_proxy
         })
         opener = build_opener(proxy_handler)
         install_opener(opener)
@@ -92,20 +116,19 @@ def main():
             try:
                 m,u = url_to_module(url)
                 if args.playlist:
-                    info_list = m.parser_list(u)
-                    if args.start >= len(info_list):
+                    parser = m.parser_list
+                else:
+                    parser = m.parser
+                info = parser(u)
+                if type(info) is list:
+                    if args.start >= len(info):
                         log.w('invalid argument -s/--start')
                         log.w('start from beginning')
                         args.start = 0
-                    for info in info_list[args.start:]:
-                        handle_videoinfo(info)
+                    for i in info[args.start:]:
+                        handle_videoinfo(i)
                 else:
-                    info = m.parser(u)
-                    if type(info) is list:
-                        for i in info:
-                            handle_videoinfo(i)
-                    else:
-                        handle_videoinfo(info)
+                    handle_videoinfo(info)
             except AssertionError as e:
                 log.wtf(compact_str(e))
                 exit = 1
