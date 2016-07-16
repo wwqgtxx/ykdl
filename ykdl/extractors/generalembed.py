@@ -37,7 +37,6 @@ tudou_api_patterns = [ ]
 v.qq.com
 """
 qq_embed_patterns = [ 'v\.qq\.com[a-zA-Z0-9\/\?\.\;]+vid=([a-zA-Z0-9]+)',
-                      'v\.qq\.com[a-zA-Z0-9\/\?\.\;]+\/([a-zA-Z0-9]+)\.html',
                       'TPout\.swf[a-zA-Z0-9=\?\&]+vid=([a-zA-Z0-9]+)'
                     ]
 
@@ -56,6 +55,8 @@ Ku6
 ku6_embed_url = [ '(http://v.ku6vms.com/[^\"]+)'
                      ]
 
+ku6_embed_patterns = [ 'http://player.ku6.com/refer/(.*)/v.swf'
+                     ]
 """
 163
 """
@@ -71,7 +72,7 @@ iqiyi_embed_patterns = [ 'definitionID=([^&]+)&tvId=([^&]+)'
 """
 Letv Cloud
 """
-lecloud_embed_patterns = [ 'letvcloud_player_conf={"uu":"([^\"]+)","vu":"([^\"]+)"',
+lecloud_embed_patterns = [ '{"uu":"([^\"]+)","vu":"([^\"]+)"',
                            'bcloud.swf\?uu=([^&]+)&amp;vu=([^&]+)'
                      ]
 
@@ -114,7 +115,7 @@ class GeneralEmbed(EmbedExtractor):
 
         vids = matchall(content, qq_embed_patterns)
         for vid in vids:
-            self.video_info_list.append(('qq',vid))
+            self.video_info_list.append(('qq.video',vid))
 
         vids = matchall(content, sohu_embed_patterns)
         for vid in vids:
@@ -127,6 +128,9 @@ class GeneralEmbed(EmbedExtractor):
             data = json.loads(get_content('http://v.ku6vms.com/phpvms/player/forplayer/vid/{}/style/{}/sn/{}'.format(flashvars[0], flashvars[1],flashvars[2])))
             vid = data['ku6vid']
             self.video_info_list.append(('ku6',vid))
+        vids = matchall(content, ku6_embed_patterns)
+        for v in vids:
+            self.video_info_list.append(('ku6', v))
         vids = matchall(content, netease_embed_patterns)
         for v in vids:
             self.video_info_list.append(('netease.video', v))
