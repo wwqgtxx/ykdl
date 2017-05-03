@@ -10,7 +10,7 @@ except(ImportError):
     sys.path.insert(1, _filepath)
     import ykdl
     
-from ykdl.__main__ import main
+from cykdl.__main__ import main
 
 if __name__ == '__main__':
     main()
