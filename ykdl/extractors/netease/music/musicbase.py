@@ -40,8 +40,7 @@ class NeteaseMusicBase(VideoExtractor):
         info = VideoInfo(self.name)
         add_header("Referer", "http://music.163.com/")
         if not self.vid:
-            self.vid =  match1(self.url, 'id=(.*)')
-
+            self.vid =  match1(self.url, 'song/(\d+)', '\?id=(.*)')
         api_url = self.api_url.format(self.vid, self.vid)
         music = self.get_music(json.loads(get_content(api_url)))
 
@@ -52,7 +51,6 @@ class NeteaseMusicBase(VideoExtractor):
 
         for st in self.supported_stream_types:
             if st in music and music[st]:
-                print(music[st])
                 info.stream_types.append(st)
                 self.song_date[st] = music[st]
                 self.extract_song(info)
@@ -61,4 +59,4 @@ class NeteaseMusicBase(VideoExtractor):
     def extract_song(self, info):
         for stream_id in info.stream_types:
             song = self.song_date[stream_id]
-            info.streams[stream_id] = {'container': song['extension'], 'video_profile': stream_id, 'src' : [make_url(self.mp3_host, song['dfsId'])], 'size': song['size']}
+            info.streams[stream_id] = {'container': 'mp3', 'video_profile': stream_id, 'src' : [make_url(self.mp3_host, song['dfsId'])], 'size': song['size']}

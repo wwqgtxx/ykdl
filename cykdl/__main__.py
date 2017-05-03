@@ -1,11 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
+import os
+try:
+    import ykdl
+except(ImportError):
+    _base_len = len('cykdl/__main__.py')
+    _filepath = os.path.abspath(sys.argv[0])[:-_base_len]
+    sys.path[0] = _filepath
+    import ykdl
 
 from argparse import ArgumentParser
 import socket
-import os
-import sys
 import json
+import types
+from multiprocessing import cpu_count
 
 from ykdl.common import url_to_module
 from ykdl.compact import ProxyHandler, build_opener, install_opener, compact_str
@@ -22,13 +31,16 @@ def arg_parser():
     parser = ArgumentParser(description="YouKuDownLoader(ykdl {}), a video downloader. Forked form you-get 0.3.34@soimort".format(__version__))
     parser.add_argument('-l', '--playlist', action='store_true', default=False, help="Download as a playlist.")
     parser.add_argument('-i', '--info', action='store_true', default=False, help="Display the information of videos without downloading.")
-    parser.add_argument('-j', '--json', action='store_true', default=False, help="Display info in json format.")
+    parser.add_argument('-J', '--json', action='store_true', default=False, help="Display info in json format.")
     parser.add_argument('-F', '--format',  help="Video format code.")
     parser.add_argument('-o', '--output-dir', default='.', help="Set the output directory for downloaded videos.")
+    parser.add_argument('-O', '--output-name', default='', help="downloaded videos with the NAME you want")
     parser.add_argument('-p', '--player', help="Directly play the video with PLAYER like mpv")
-    parser.add_argument('-s', '--start', type=int, default=0, help="start from INDEX to play/download playlist")
     parser.add_argument('--proxy', type=str, default='system', help="set proxy HOST:PORT for http(s) transfer. default: use system proxy settings")
     parser.add_argument('-t', '--timeout', type=int, default=60, help="set socket timeout seconds, default 60s")
+    parser.add_argument('--no-merge', action='store_true', default=False, help="do not merge video slides")
+    parser.add_argument('-s', '--start', type=int, default=0, help="start from INDEX to play/download playlist")
+    parser.add_argument('-j', '--jobs', type=int, default=cpu_count(), help="number of jobs for multiprocess download")
     parser.add_argument('video_urls', type=str, nargs='+', help="video urls")
     global args
     args = parser.parse_args()
@@ -58,13 +70,14 @@ def download(urls, name, ext, live = False):
     if not m3u8_internal:
         launch_ffmpeg_download(urls[0], name + '.' + ext, live)
     else:
-        save_urls(urls, name, ext)
+        save_urls(urls, name, ext, jobs = args.jobs)
         lenth = len(urls)
-        if lenth > 1:
-            launch_ffmpeg(name, ext,lenth)
-            clean_slices(name, ext,lenth)
+        if lenth > 1 and not args.no_merge:
+            ret = launch_ffmpeg(name, ext,lenth)
+            if not ret:
+                clean_slices(name, ext,lenth)
 
-def handle_videoinfo(info):
+def handle_videoinfo(info, index=0):
     if not args.json:
         info.print_info(args.format, args.info)
     else:
@@ -73,7 +86,14 @@ def handle_videoinfo(info):
         return
     stream_id = args.format or info.stream_types[0]
     urls = info.streams[stream_id]['src']
-    name = info.build_file_name(stream_id)
+    if args.output_name:
+        if args.playlist:
+            name = args.output_name + '_' + str(index)
+        else:
+            name = args.output_name
+    else:
+        name = info.build_file_name(stream_id)
+
     ext = info.streams[stream_id]['container']
     live = info.live
     if args.player:
@@ -117,13 +137,14 @@ def main():
                 else:
                     parser = m.parser
                 info = parser(u)
-                if type(info) is list:
-                    if args.start >= len(info):
-                        log.w('invalid argument -s/--start')
-                        log.w('start from beginning')
-                        args.start = 0
-                    for i in info[args.start:]:
-                        handle_videoinfo(i)
+                if type(info) is types.GeneratorType or type(info) is list:
+                    ind = 0
+                    for i in info:
+                        if ind < args.start:
+                            ind+=1
+                            continue
+                        handle_videoinfo(i, index=ind)
+                        ind+=1
                 else:
                     handle_videoinfo(info)
             except AssertionError as e:

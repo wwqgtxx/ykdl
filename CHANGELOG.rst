@@ -1,7 +1,101 @@
 Change Log for ykdl
 ===================
 
-1.1.3.2
+1.4.8
+-------
+
+- support new sites: ifeng/163 open course
+- update QQ, acfun, weibo, ifeng
+- update youku, due to api changed
+- misc changes
+
+1.4.7
+-------
+
+- fix bug when len(urls) == 1
+- update mgtv, huomao, bilibili
+- restructure ykdl, using setuptools
+- misc changes
+
+
+1.4.6
+-------
+
+- acfun: add missing sign
+- python2 fix
+- using ThreadPoolExecutor for multithread download
+- rename short opt for json out to capital J
+- add -j --jobs for multithread download jobs number, default is NR_CPUS
+
+1.4.5
+-------
+
+- fix iqiyi with code clean
+- update bilibili Episode title
+- update douyu live room name
+- use yield to speedup playlist
+- python2 fix
+
+
+1.4.4
+-------
+
+- fix Acfun again
+- fix douyu live
+- support multithread download, NOTE: this is not finished
+
+1.4.3
+-------
+
+- fix Acfun
+- fix letv
+
+1.4.2
+-------
+
+- change version string to 3 digital
+- fix qq, douyu, mgtv, QQ. etc.
+- report stream_types in json
+
+
+1.1.4.1
+-------
+
+- fix letv live, cctv, xiami, QQ
+- support douyu video, kankannews, Quanmin Live
+- update common alias dict
+
+1.1.4
+-------
+
+- port PPTV, yizhibo from upstream/PL
+- update Bilibili.
+- partially support Taobao 
+
+1.1.3.6
+-------
+
+- update bilibili playlist.
+- update ACfun.
+- support youku mp5
+
+
+1.1.3.5
+-------
+
+- update bilibili for eid and title.
+- update ACfun for match pattern, and playlist
+- update main script to fix bugs, add -O option
+- add warning in m3u8_wrapper
+
+1.1.3.4
+-------
+
+- update bilibili, ACfun
+- update setup script, test makefile
+
+
+1.1.3.3
 -------
 
 - update douyu, QQ, generalembed

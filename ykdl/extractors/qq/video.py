@@ -121,13 +121,13 @@ class QQ(VideoExtractor):
 
     name = u"腾讯视频 (QQ)"
 
-    supported_stream_types = [ 'shd', 'mp4', 'hd', 'flv','sd' ]
+    supported_stream_types = [ 'shd', 'mp4', 'hd', 'sd' ]
 
-    stream_2_profile = { 'shd': u'超清', 'mp4': u'高清mp4', 'hd': u'高清', 'flv': u'高清flv', 'sd': u'标清' }
+    stream_2_profile = { 'shd': u'超清', 'mp4': u'高清mp4', 'hd': u'高清', 'flv': u'高清flv', 'sd': u'标清', 'msd':u'急速' }
 
-    stream_2_id = { 'shd': 'TD', 'mp4': 'HD', 'hd': 'HD', 'flv': 'HD', 'sd': 'SD' }
+    stream_2_id = { 'shd': 'TD', 'mp4': 'HD', 'hd': 'HD', 'flv': 'HD', 'sd': 'SD', 'msd':'LD' }
 
-    stream_ids = ['TD', 'HD', 'SD']
+    stream_ids = ['TD', 'HD', 'SD', 'LD']
 
 
     def get_stream_info(self, profile):
@@ -235,11 +235,11 @@ class QQ(VideoExtractor):
     def prepare(self):
         info = VideoInfo(self.name)
         if not self.vid:
-            self.vid = match1(self.url, 'vid=(\w+)')
+            self.vid = match1(self.url, '/(\w+)\.html','vid=(\w+)')
 
-        if not self.vid:
+        if not self.vid or len(self.vid) != 11:
             html = get_content(self.url)
-            self.vid = match1(html, 'vid:\s*\"([^\"]+)', 'vid\s*=\s*"\s*([^"]+)"')
+            self.vid = match1(html, 'vid:\s*\"([^\"]+)', 'vid\s*=\s*"\s*([^"]+)"', 'vid=(\w+)')
 
         for stream in self.supported_stream_types:
             title, fmt_name, type_name, urls, size = self.get_stream_info(stream)
@@ -254,6 +254,7 @@ class QQ(VideoExtractor):
 
     def prepare_list(self):
         html = get_content(self.url)
-        return matchall(html, ['id=\"([^\"]+)\S title'])
+        vids = [a.strip('"') for a in match1(html, '\"vid\":\[([^\]]+)').split(',')]
+        return vids
 
 site = QQ()
