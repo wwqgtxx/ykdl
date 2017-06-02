@@ -19,20 +19,6 @@ youku_embed_patterns = [ 'youku\.com/v_show/id_([a-zA-Z0-9=]+)',
                        ]
 
 """
-http://www.tudou.com/programs/view/html5embed.action?type=0&amp;code=3LS_URGvl54&amp;lcode=&amp;resourceId=0_06_05_99
-http://www.tudou.com/v/voahn6inu8k/&resourceId=402221676_04_02_99/v.swf
-"""
-tudou_embed_patterns = [ 'tudou\.com[a-zA-Z0-9\/\?=\&\.\;\#]+code=([^&]+)',
-                         'tudou\.com\/[a-zA-Z]\/([^\/]+)'
-                       ]
-
-"""
-refer to http://open.tudou.com/wiki/video/info
-"""
-tudou_api_patterns = [ ]
-
-
-"""
 v.qq.com
 """
 qq_embed_patterns = [ 'v\.qq\.com[a-zA-Z0-9\/\?\.\;]+vid=([a-zA-Z0-9]+)',
@@ -112,12 +98,6 @@ class GeneralEmbed(EmbedExtractor):
         for vid in vids:
             self.video_info_list.append(('youku',vid))
 
-        vids = matchall(content, tudou_embed_patterns)
-        for vid in vids:
-            new_url = get_location("http://tudou.com/v/"+vid)
-            iid = match1(new_url, 'iid=([^&]+)')
-            self.video_info_list.append(('tdorig',iid))
-
         vids = matchall(content, qq_embed_patterns)
         for vid in vids:
             self.video_info_list.append(('qq.video',vid))
@@ -153,7 +133,7 @@ class GeneralEmbed(EmbedExtractor):
         vids = matchall(content, ifeng_embed_patterns)
         for v in vids:
             v  = v.split('&')[0]
-            self.video_info_list.append(('ifeng', v))
+            self.video_info_list.append(('ifeng.news', v))
 
         vids = matchall(content, weibo_embed_patterns)
         for v in vids:
@@ -171,6 +151,9 @@ class GeneralEmbed(EmbedExtractor):
                 site = 'bilibili.video'
             elif site == 'qq':
                 site = 'qq.video'
+            elif site =='yun':
+                site = 'le.letvcloud'
+                v = v.split(':')
             self.video_info_list.append((site, v))
 
         tmp = []
