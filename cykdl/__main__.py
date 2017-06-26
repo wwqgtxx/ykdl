@@ -58,8 +58,6 @@ def download(urls, name, ext, live = False):
     # ffmpeg can't handle local m3u8.
     # only use ffmpeg to hanle m3u8.
     global m3u8_internal
-    if not urls[0].startswith('http') or not ext == 'm3u8':
-        m3u8_internal = True
     # for live video, always use ffmpeg to rebuild timeline.
     if live:
         m3u8_internal = False
@@ -102,7 +100,7 @@ def handle_videoinfo(info, index=0):
     ext = info.streams[stream_id]['container']
     live = info.live
     if args.player:
-        launch_player(args.player, urls)
+        launch_player(args.player, urls, **info.extra)
     else:
         download(urls, name, ext, live)
 
@@ -115,6 +113,7 @@ def main():
 
     if args.timeout:
         socket.setdefaulttimeout(args.timeout)
+
     if args.proxy == 'system':
         proxy_handler = ProxyHandler()
     else:
@@ -122,8 +121,9 @@ def main():
             'http': args.proxy,
             'https': args.proxy
         })
-    opener = build_opener(proxy_handler)
-    install_opener(opener)
+    if not args.proxy == 'none':
+        opener = build_opener(proxy_handler)
+        install_opener(opener)
 
     #mkdir and cd to output dir
     if not args.output_dir == '.':

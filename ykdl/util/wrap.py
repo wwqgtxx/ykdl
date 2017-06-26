@@ -10,8 +10,17 @@ logger = getLogger("wrap")
 from ykdl.compact import compact_tempfile
 
 
-def launch_player(player, urls):
-    subprocess.call(shlex.split(player) + list(urls))
+def launch_player(player, urls, **args):
+    if 'mpv' in player:
+        cmd = shlex.split(player) + ['--demuxer-lavf-o=protocol_whitelist=[file,tcp,http]']
+        if args["ua"]:
+            cmd += ["--user-agent={}".format(args["ua"])]
+        if args["referer"]:
+            cmd += ["--referrer={}".format(args["referer"])]
+        cmd += list(urls)
+    else:
+        cmd = shlex.split(player) + list(urls)
+    subprocess.call(cmd)
 
 def launch_ffmpeg(basename, ext, lenth):
     #build input
@@ -35,6 +44,11 @@ def launch_ffmpeg_download(url, name, live):
     if live:
         print('stop downloading by press \'q\'')
 
-    cmd = ['ffmpeg', '-y', '-i', url, '-c', 'copy', '-absf', 'aac_adtstoasc',  '-hide_banner', name]
+    cmd = ['ffmpeg', '-y']
+
+    if not url.startswith('http'):
+       cmd += ['-protocol_whitelist', 'file,tcp,http' ]
+
+    cmd += ['-i', url, '-c', 'copy', '-absf', 'aac_adtstoasc',  '-hide_banner', name]
 
     subprocess.call(cmd)
