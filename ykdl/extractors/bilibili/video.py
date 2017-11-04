@@ -41,7 +41,7 @@ class BiliVideo(VideoExtractor):
         if not self.vid:
             html = get_content(self.url)
             self.vid = match1(html, 'cid=(\d+)', 'cid=\"(\d+)')
-            info.title = match1(html, '<h1 title="([^"]+)').strip()
+            info.title = match1(html, '<h1 title="([^"]+)', '<title>([^<]+)').strip()
             if not self.vid:
                 eid = match1(self.url, 'anime/v/(\d+)', 'play#(\d+)') or match1(html, 'anime/v/(\d+)')
                 if eid:
@@ -56,7 +56,7 @@ class BiliVideo(VideoExtractor):
             html = get_content(api_url)
             self.logger.debug("HTML> {}".format(html))
             code = match1(html, '<code>([^<])')
-            assert code == '0', "can't play this video: {}".format(match1(html, 'CDATA\[([^\]]+)'))
+            assert not code, "can't play this video: {}".format(match1(html, 'CDATA\[([^\]]+)'))
             urls, size, ext = parse_cid_playurl(html)
             if ext == 'hdmp4':
                 ext = 'mp4'
