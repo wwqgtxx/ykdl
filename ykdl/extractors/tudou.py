@@ -11,8 +11,8 @@ class Tudou(Youku):
     def __init__(self):
         Youku.__init__(self)
         self.referer = "http://video.tudou.com/"
-        
         self.ccode = '0505'
+        self.ref = 'http://video.tudou.com/'
 
     def prepare(self):
         if not re.search('video.tuodou.com', self.url):
