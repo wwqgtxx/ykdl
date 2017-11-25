@@ -27,18 +27,19 @@ class Youku(VideoExtractor):
     def __init__(self):
         VideoExtractor.__init__(self)
         self.ccode = '0502'
+        self.referer = "http://v.youku.com"
 
 
     def prepare(self):
-        add_header("referer", "http://v.youku.com")
+        add_header("referer", self.referer)
         ssl_context = HTTPSHandler(
             context=ssl.SSLContext(ssl.PROTOCOL_TLSv1))
         cookie_handler = HTTPCookieProcessor()
         opener = build_opener(ssl_context, cookie_handler)
         opener.addheaders = [('Cookie','__ysuid=%d' % time.time())]
         install_opener(opener)
-        
-        info = VideoInfo(self.name)        
+
+        info = VideoInfo(self.name)
 
         if self.url and not self.vid:
              self.vid = match1(self.url.split('//', 1)[1],
