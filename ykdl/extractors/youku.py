@@ -16,6 +16,7 @@ import ssl
 
 ckey = quote("DIl58SLFxFNndSV1GFNnMQVYkx1PP5tKe1siZu/86PR1u/Wh1Ptd+WOZsHHWxysSfAOhNJpdVWsdVJNsfJ8Sxd8WKVvNfAS8aS8fAOzYARzPyPc3JvtnPHjTdKfESTdnuTW6ZPvk2pNDh4uFzotgdMEFkzQ5wZVXl2Pf1/Y6hLK0OnCNxBj3+nb0v72gZ6b0td+WOZsHHWxysSo/0y9D2K42SaB8Y/+aD2K42SaB8Y/+ahU+WOZsHcrxysooUeND")
 
+
 def fetch_cna():
     url = 'http://gm.mmstat.com/yt/ykcomment.play.commentInit?cna='
     req = urlopen(url)
@@ -28,7 +29,7 @@ class Youku(VideoExtractor):
 
     def __init__(self):
         VideoExtractor.__init__(self)
-        self.ccode = '0508'
+        self.ccode = '0502'
         self.ref = 'http://v.youku.com'
 
 
@@ -48,7 +49,7 @@ class Youku(VideoExtractor):
                                '^v\.[^/]+/v_show/id_([a-zA-Z0-9=]+)',
                                '^player[^/]+/(?:player\.php/sid|embed)/([a-zA-Z0-9=]+)',
                                '^static.+loader\.swf\?VideoIDS=([a-zA-Z0-9=]+)',
-                               '^video\.tudou\.com/v/([a-zA-Z0-9=]+)')
+                               '^(?:new-play|video)\.tudou\.com/v/([a-zA-Z0-9=]+)')
 
         self.logger.debug("VID: " + self.vid)
         api_url = 'https://ups.youku.com/ups/get.json?vid={}&ccode={}&client_ip=192.168.1.1&utid={}&client_ts={}&ckey={}'.format(self.vid, self.ccode, quote(fetch_cna()), int(time.time()),ckey)
