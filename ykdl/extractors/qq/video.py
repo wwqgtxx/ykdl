@@ -13,6 +13,7 @@ import random
 import base64
 import struct
 import uuid
+import json
 
 PLAYER_PLATFORM = 11
 PLAYER_VERSION = '3.2.19.333'
@@ -92,114 +93,100 @@ def load_key():
 
 """
 
-def qq_get_final_url(url, fmt_name, type_name, br, form, fn):
-
-    content = get_content('http://vv.video.qq.com/getkey',data=compact_bytes(form, 'utf-8'), charset = 'ignore')
-    tree = ET.fromstring(content)
-
-    vkey = tree.find('./key')
-    if vkey is None:
-        return
-    else:
-        vkey = vkey.text
-
-    level = tree.find('./level').text
-    sp = tree.find('./sp').text
-
+def qq_get_final_url(url, vid, fmt_id, filename, fvkey):
     params = {
-        'stdfrom': 'v1090',
-        'type': type_name,
-        'vkey': vkey,
-        'level': level,
+        'appver': PLAYER_VERSION,
+        'otype': 'json',
         'platform': PLAYER_PLATFORM,
-        'br': br,
-        'fmt': fmt_name,
-        'sp': sp,
+        'filename': filename,
+        'vid': vid,
+        'format': fmt_id,
     }
-    form = urlencode(params)
-    return "%s?%s" % (url, form)
+
+    content = get_content('http://vv.video.qq.com/getkey?' + urlencode(params))
+    data = json.loads(match1(content, r'QZOutputJson=(.+);$'))
+
+    vkey = data.get('key')
+    if vkey is None:
+        vkey = fvkey
+
+    return "{}{}?vkey={}".format(url, filename, vkey)
 
 
 
 class QQ(VideoExtractor):
 
     name = u"腾讯视频 (QQ)"
-
     vip = None
 
-    supported_stream_types = [ 'fhd', 'shd', 'mp4', 'hd', 'sd' ]
-
-    stream_2_profile = { 'fhd': u'蓝光', 'shd': u'超清', 'mp4': u'高清mp4', 'hd': u'高清', 'flv': u'高清flv', 'sd': u'标清', 'msd':u'急速' }
-
-    stream_2_id = { 'fhd': 'BD', 'shd': 'TD', 'mp4': 'HD', 'hd': 'HD', 'flv': 'HD', 'sd': 'SD', 'msd':'LD' }
-
+    stream_2_id = { 'fhd': 'BD', 'shd': 'TD', 'hd': 'HD', 'sd': 'SD', 'msd':'LD' }
     stream_ids = ['BD', 'TD', 'HD', 'SD', 'LD']
 
 
     def get_streams_info(self, profile='shd'):
-
-        player_pid = uuid.uuid4().hex.upper()
-
         params = {
-            'fp2p': 1,
-            'pid': player_pid,
-            'otype': 'xml',
-            'defn': profile,
+            'otype': 'json',
             'platform': PLAYER_PLATFORM,
-            'fhdswitch': 0,
-            'charge': 0,
-            'ckey' : "",
             'vid': self.vid,
             'defnpayver': 1,
-            'encryptVer': "",
-            'speed': random.randint(512, 1024),
-            'ran': random.random(),
             'appver': PLAYER_VERSION,
-            'defaultfmt': profile,
-            'utype': -1,
-            'vids': self.vid
+            'defn': profile,
         }
 
-        form = urlencode(params)
-        content = get_content('http://vv.video.qq.com/getinfo',data=compact_bytes(form, 'utf-8'), charset = 'ignore')
-        if profile == 'shd' and b'<name>shd' not in content:
+        content = get_content('http://vv.video.qq.com/getinfo?' + urlencode(params))
+        if profile == 'shd' and '"name":"fhd"' not in content:
             for infos in self.get_streams_info('hd'):
                 yield infos
             return
         else:
-            tree = ET.fromstring(content)
+            data = json.loads(match1(content, r'QZOutputJson=(.+);$'))
+        self.logger.debug('data: ' + str(data))
 
-        video = tree.find('./vl/vi')
-        filename = video.find('./fn').text
-        title = video.find('./ti').text
+        video = data['vl']['vi'][0]
+        fn = video['fn']
+        title = video['ti']
+        td = float(video['td'])
+        fvkey = video['fvkey']
+        # Not to be absolutely accuracy.
+        self.vip = video['iflag']
 
-        cdn = video.find('./ul/ui')
-        cdn_url = cdn.find('./url').text
-        filetype = int(cdn.find('./dt').text)
-        vt = cdn.find('./vt').text
-        if filetype == 1:
+        # Priority for range fetch.
+        cdn_url_1 = cdn_url_2 = cdn_url_3 = None
+        for cdn in video['ul']['ui']:
+            cdn_url = cdn['url']
+            # 'video.dispatch.tc.qq.com' supported keep-alive link.
+            if cdn_url == 'http://video.dispatch.tc.qq.com/':
+                cdn_url_1 = cdn_url
+                break
+            # IP host.
+            if match1(cdn_url, '(^https?://[0-9\.]+/)'):
+                cdn_url_3 = cdn_url
+            else:
+                cdn_url_2 = cdn_url
+        cdn_url = cdn_url_1 or cdn_url_2 or cdn_url_3 
+
+        dt = cdn['dt']
+        if dt == 1:
             type_name = 'flv'
-        elif filetype == 2:
+        elif dt == 2:
             type_name = 'mp4'
         else:
             type_name = 'unknown'
 
-        _num_clips = int(video.find('./cl/fc').text)
+        _num_clips = video['cl']['fc']
 
-        fmt_id = None
-        fmt_name = None
-        fmt_br = None
-        for fmt in tree.findall('./fl/fi'):
-            fmt_id = fmt.find('./id').text
-            fmt_name = fmt.find('./name').text
-            fmt_br = fmt.find('./br').text
-            size = int(fmt.find('./fs').text)
-            #sl = int(fmt.find('./sl').text)
+        for fmt in data['fl']['fi']:
+            fmt_id = fmt['id']
+            fmt_name = fmt['name']
+            fmt_cname = fmt['cname']
+            size = fmt['fs']
+            rate = size // td
 
-            fns = filename.split('.')
-            fmt_id_num = int(fmt_id)
+            fns = fn.split('.')
+            fmt_id_num = fmt_id
             fmt_id_prefix = None
             num_clips = 0
+
             if fmt_id_num > 100000:
                 fmt_id_prefix = 'm'
             elif fmt_id_num > 10000:
@@ -214,57 +201,25 @@ class QQ(VideoExtractor):
             elif fns[1][0] in ('p', 'm') and not fns[1].startswith('mp'):
                 del fns[1]
 
-            #may have preformence issue when info_only
             urls =[]
 
             if num_clips == 0:
-                fn = '.'.join(fns)
-                params = {
-                    'ran': random.random(),
-                    'appver': PLAYER_VERSION,
-                    'otype': 'xml',
-                    'encryptVer': "",
-                    'platform': PLAYER_PLATFORM,
-                    'filename': fn,
-                    'vid': self.vid,
-                    'vt': vt,
-                    'charge': 0,
-                    'format': fmt_id,
-                    'cKey': "",
-                }
-
-                form = urlencode(params)
-                clip_url = '%s%s' % (cdn_url, fn)
-                urls.append(qq_get_final_url(clip_url, fmt_name, type_name, fmt_br, form, fn))
-
+                filename = '.'.join(fns)
+                url = qq_get_final_url(cdn_url, self.vid, fmt_id, filename, fvkey)
+                urls.append(url)
             else:
                 fns.insert(-1, '1')
                 for idx in range(1, num_clips+1):
                     fns[-2] = str(idx)
-                    fn = '.'.join(fns)
-                    params = {
-                        'ran': random.random(),
-                        'appver': PLAYER_VERSION,
-                        'otype': 'xml',
-                        'encryptVer': "",
-                        'platform': PLAYER_PLATFORM,
-                        'filename': fn,
-                        'vid': self.vid,
-                        'vt': vt,
-                        'charge': 0,
-                        'format': fmt_id,
-                        'cKey': "",
-                    }
-                    form = urlencode(params)
-                    clip_url = '%s%s' % (cdn_url, fn)
-                    url = qq_get_final_url(clip_url, fmt_name, type_name, fmt_br, form, fn)
+                    filename = '.'.join(fns)
+                    url = qq_get_final_url(cdn_url, self.vid, fmt_id, filename, fvkey)
                     if url:
                         urls.append(url)
                     else:
                         self.vip = True
                         break
 
-            yield title, fmt_name, type_name, urls, size
+            yield title, fmt_name, fmt_cname, type_name, urls, size, rate
 
     def prepare(self):
         info = VideoInfo(self.name)
@@ -282,16 +237,22 @@ class QQ(VideoExtractor):
                 self.logger.warning('This video has been deleted!')
                 return info
 
-        for title, fmt_name, type_name, urls, size in self.get_streams_info():
+        video_rate = {}
+        for title, fmt_name, stream_profile, type_name, urls, size, rate in self.get_streams_info():
             stream_id = self.stream_2_id[fmt_name]
-            stream_profile = self.stream_2_profile[fmt_name]
-            if not stream_id in info.stream_types:
+            if stream_id not in info.stream_types:
                 info.stream_types.append(stream_id)
                 info.streams[stream_id] = {'container': type_name, 'video_profile': stream_profile, 'src' : urls, 'size': size}
+                video_rate[stream_id] = rate
         info.stream_types = sorted(info.stream_types, key = self.stream_ids.index)
         info.title = title
 
+        # Downloading some videos is very slow, use multithreading range fetch to speed up.
+        # Only for video players now.
+        info.extra['rangefetch'] = {'first_size': 1024 * 16, 'max_size': 1024 * 32, 'threads': 10, 'video_rate': video_rate}
+
         if self.vip:
+            info.extra['rangefetch']['threads'] = 14
             self.logger.warning('This is a VIP video!')
 
         return info
