@@ -7,10 +7,18 @@
 
 from logging import getLogger
 from ykdl.compact import (
-    Queue, thread, urlsplit, HTTPStatus,
-    BaseHTTPRequestHandler, SocketServer
+    Queue, thread, urlsplit
     )
 from ykdl.util.html import fake_headers as _fake_headers
+
+import sys
+if sys.version_info[0] == 3:
+    from http.server import HTTPStatus, BaseHTTPRequestHandler
+    import socketserver as SocketServer
+else:
+    from BaseHTTPServer import BaseHTTPRequestHandler
+    import httplib as HTTPStatus
+    import SocketServer
 
 import urllib3
 import re
@@ -320,7 +328,7 @@ class RangeFetch():
                         data_queue.put((start, data))
                         start += len(data)
                         if thread_order > self._started_order:
-                            raise
+                            raise Exception
                         data = response.read(self.bufsize)
                 except Exception as e:
                     response.close()

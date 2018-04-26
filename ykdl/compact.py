@@ -9,8 +9,6 @@ if sys.version_info[0] == 3:
     from urllib.request import Request, urlopen, HTTPSHandler, build_opener, HTTPCookieProcessor, install_opener, ProxyHandler
     from urllib.parse import urlencode, urlparse, urlsplit
     from http.client import HTTPConnection
-    from http.server import HTTPStatus, BaseHTTPRequestHandler
-    import socketserver as SocketServer
     import queue as Queue
     import _thread as thread
     from html import unescape
@@ -32,9 +30,6 @@ else:
     from urllib import urlencode
     from urlparse import urlparse, urlsplit
     from httplib import HTTPConnection
-    from BaseHTTPServer import BaseHTTPRequestHandler
-    import httplib as HTTPStatus
-    import SocketServer
     import Queue
     import thread
     import types
