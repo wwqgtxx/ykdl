@@ -14,11 +14,9 @@ import time
 import json
 import ssl
 
-ckey = quote("DIl58SLFxFNndSV1GFNnMQVYkx1PP5tKe1siZu/86PR1u/Wh1Ptd+WOZsHHWxysSfAOhNJpdVWsdVJNsfJ8Sxd8WKVvNfAS8aS8fAOzYARzPyPc3JvtnPHjTdKfESTdnuTW6ZPvk2pNDh4uFzotgdMEFkzQ5wZVXl2Pf1/Y6hLK0OnCNxBj3+nb0v72gZ6b0td+WOZsHHWxysSo/0y9D2K42SaB8Y/+aD2K42SaB8Y/+ahU+WOZsHcrxysooUeND")
-
 
 def fetch_cna():
-    url = 'http://gm.mmstat.com/yt/ykcomment.play.commentInit?cna='
+    url = 'https://gm.mmstat.com/yt/ykcomment.play.commentInit?cna='
     req = urlopen(url)
     cookies = req.info()['Set-Cookie']
     cna = match1(cookies, "cna=([^;]+)")
@@ -26,21 +24,20 @@ def fetch_cna():
 
 class Youku(VideoExtractor):
     name = u"优酷 (Youku)"
+    ref_youku = 'https://v.youku.com'
+    ref_tudou = 'https://video.tudou.com'
+    ckey_default = quote("DIl58SLFxFNndSV1GFNnMQVYkx1PP5tKe1siZu/86PR1u/Wh1Ptd+WOZsHHWxysSfAOhNJpdVWsdVJNsfJ8Sxd8WKVvNfAS8aS8fAOzYARzPyPc3JvtnPHjTdKfESTdnuTW6ZPvk2pNDh4uFzotgdMEFkzQ5wZVXl2Pf1/Y6hLK0OnCNxBj3+nb0v72gZ6b0td+WOZsHHWxysSo/0y9D2K42SaB8Y/+aD2K42SaB8Y/+ahU+WOZsHcrxysooUeND")
 
     def __init__(self):
         VideoExtractor.__init__(self)
-        self.ccode = '0502'
-        self.ref = 'http://v.youku.com'
-
+        self.params = (
+            ('0510', self.ref_youku, self.ckey_default),
+            ('050F', self.ref_tudou, self.ckey_default),
+            ('0590', self.ref_youku, self.ckey_default),
+            )
 
     def prepare(self):
-        add_header("Referer", self.ref)
-        ssl_context = HTTPSHandler(
-            context=ssl.SSLContext(ssl.PROTOCOL_TLSv1))
-        cookie_handler = HTTPCookieProcessor()
-        opener = build_opener(ssl_context, cookie_handler)
-        opener.addheaders = [('Cookie','__ysuid=%d' % time.time())]
-        install_opener(opener)
+        add_header("Cookie", '__ysuid=%d' % time.time())
 
         info = VideoInfo(self.name)
 
@@ -51,11 +48,21 @@ class Youku(VideoExtractor):
                                '^static.+loader\.swf\?VideoIDS=([a-zA-Z0-9=]+)',
                                '^(?:new-play|video)\.tudou\.com/v/([a-zA-Z0-9=]+)')
 
+        if self.vid.isdigit():
+            import base64
+            vid = base64.b64encode(b'%d' % (int(self.vid) * 4))
+            if not isinstance(vid, str):
+                vid = vid.decode()
+            self.vid = 'X' + vid
         self.logger.debug("VID: " + self.vid)
-        api_url = 'https://ups.youku.com/ups/get.json?vid={}&ccode={}&client_ip=192.168.1.1&utid={}&client_ts={}&ckey={}'.format(self.vid, self.ccode, quote(fetch_cna()), int(time.time()),ckey)
+        for ccode, ref, ckey in self.params:
+            add_header("Referer", ref)
+            api_url = 'https://ups.youku.com/ups/get.json?vid={}&ccode={}&client_ip=192.168.1.1&utid={}&client_ts={}&ckey={}'.format(self.vid, ccode, quote(fetch_cna()), int(time.time()),ckey)
 
-        data = json.loads(get_content(api_url))
-        self.logger.debug("data: " + str(data))
+            data = json.loads(get_content(api_url))
+            self.logger.debug("data: " + str(data))
+            if data['e']['code'] == 0 and 'stream' in data['data']:
+                    break
         assert data['e']['code'] == 0, data['e']['desc']
         data = data['data']
         assert 'stream' in data, data['error']['note']
