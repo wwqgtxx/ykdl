@@ -17,6 +17,7 @@ import json
 import socket
 import traceback
 import base64
+import os
 from argparse import ArgumentParser
 from multiprocessing.connection import Client, Connection
 
