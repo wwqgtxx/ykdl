@@ -63,21 +63,22 @@ def main():
         class Response(object):
             __slots__ = ("data", "headers", "url")
 
-        def get_response(url, headers=None, get_method=None, no_logging=False):
+        def get_response(url, faker=False, headers=None, get_method=None, without_data=False, no_logging=False):
             if not no_logging:
                 logging.debug('get_response: %s' % url)
 
             bd = json.dumps({"url": url, "headers": headers,
-                             "encoding": "response", "method": get_method}).encode("utf-8")
+                             "encoding": "response_without_data" if without_data else "response",
+                             "method": get_method}).encode("utf-8")
             resp = json.loads(_get(bd, True))
             response = Response()
-            response.data = base64.b64decode(resp["data"])
+            response.data = None if without_data else base64.b64decode(resp["data"])
             response.headers = resp["headers"]
             response.url = resp["url"]
             return response
 
         def get_location(url, headers=html.fake_headers):
-            resp = get_response(url, headers=headers, no_logging=True)
+            resp = get_response(url, headers=headers, without_data=True, no_logging=True)
             return resp.url
 
         def get_content(url, headers=html.fake_headers, data=None, charset=None):
