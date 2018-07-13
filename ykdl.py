@@ -36,17 +36,16 @@ def get_content(url, headers=html.fake_headers, data=None, charset=None):
     # logger.warning((url, data, charset, headers))
     if conn:
         bd = json.dumps({"url": url, "headers": headers, "data": data, "charset": charset}).encode("utf-8")
-        for _ in range(3):
-            try:
-                conn.send_bytes(bd)
-                resp = conn.recv_bytes()
-                if charset == "ignore":
-                    return resp
-                else:
-                    return resp.decode("utf-8")
-            except Exception:
-                logger.exception("get_content")
-                sys.exit(0)
+        try:
+            conn.send_bytes(bd)
+            resp = conn.recv_bytes()
+            if charset == "ignore":
+                return resp
+            else:
+                return resp.decode("utf-8")
+        except Exception:
+            logger.exception("get_content")
+            sys.exit(0)
     return _get_content(url, headers, data, charset)
 
 
@@ -63,14 +62,13 @@ def arg_parser():
     parser.add_argument('-F', '--format', help="Video format code, or resolution level 0, 1, ...")
     parser.add_argument('-t', '--timeout', type=int, default=60, help="set socket timeout seconds, default 60s")
     parser.add_argument('--debug', default=False, action='store_true', help="print debug messages from ykdl")
-    parser.add_argument('--address_get_url', type=str, default='', help="")
     parser.add_argument('video_url', type=str, help="video url")
     return parser.parse_args()
 
 
 def main():
     args = arg_parser()
-    address = args.address_get_url
+    address = os.environ.get("address_get_url", None)
     if address:
         global conn
         conn = Client(address=address)
