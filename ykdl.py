@@ -28,6 +28,8 @@ logger = logging.getLogger("YKDL")
 from ykdl.common import url_to_module
 from ykdl.version import __version__
 from ykdl.util import html
+from ykdl.compact import ProxyHandler, build_opener, install_opener, compact_str
+from ykdl.util.html import default_proxy_handler
 
 
 def arg_parser():
@@ -40,55 +42,14 @@ def arg_parser():
     parser.add_argument('-F', '--format', help="Video format code, or resolution level 0, 1, ...")
     parser.add_argument('-t', '--timeout', type=int, default=60, help="set socket timeout seconds, default 60s")
     parser.add_argument('--debug', default=False, action='store_true', help="print debug messages from ykdl")
+    parser.add_argument('--proxy', type=str, default='system',
+                        help="set proxy HOST:PORT for http(s) transfer. default: use system proxy settings")
     parser.add_argument('video_url', type=str, help="video url")
     return parser.parse_args()
 
 
 def main():
     args = arg_parser()
-    address = os.environ.get("address_get_url", None)
-    if address:
-        conn = Client(address=address)
-
-        def _get(bd, decoded=True):
-            try:
-                conn.send_bytes(bd)
-                resp = conn.recv_bytes()
-                if decoded:
-                    return resp.decode("utf-8")
-                else:
-                    return resp
-            except Exception:
-                sys.exit(0)
-
-        class Response(object):
-            __slots__ = ("data", "headers", "url")
-
-        def get_response(url, faker=False, headers=None, get_method=None, without_data=False, no_logging=False):
-            if not no_logging:
-                logging.debug('get_response: %s' % url)
-
-            bd = json.dumps({"url": url, "headers": headers,
-                             "encoding": "response_without_data" if without_data else "response",
-                             "method": get_method}).encode("utf-8")
-            resp = json.loads(_get(bd, True))
-            response = Response()
-            response.data = None if without_data else base64.b64decode(resp["data"])
-            response.headers = resp["headers"]
-            response.url = resp["url"]
-            return response
-
-        def get_location(url, headers=html.fake_headers):
-            resp = get_response(url, headers=headers, without_data=True, no_logging=True)
-            return resp.url
-
-        def get_content(url, headers=html.fake_headers, data=None, charset=None):
-            # logger.warning((url, data, charset, headers))
-            bd = json.dumps({"url": url, "headers": headers, "data": data, "charset": charset}).encode("utf-8")
-            return _get(bd, charset != "ignore")
-
-        html.get_location = get_location
-        html.get_content = get_content
 
     logging.root.setLevel(logging.WARNING)
     # if not args.debug:
@@ -98,6 +59,23 @@ def main():
 
     if args.timeout:
         socket.setdefaulttimeout(args.timeout)
+
+    if args.proxy == 'system':
+        proxy_handler = ProxyHandler()
+        args.proxy = os.environ.get('HTTP_PROXY', 'none')
+    else:
+        proxy_handler = ProxyHandler({
+            'http': args.proxy,
+            'https': args.proxy
+        })
+    if not args.proxy == 'none':
+        opener = build_opener(proxy_handler)
+        install_opener(opener)
+        default_proxy_handler[:] = [proxy_handler]
+
+    import ssl
+
+    ssl._create_default_https_context = ssl._create_unverified_context
 
     try:
         url = args.video_url
