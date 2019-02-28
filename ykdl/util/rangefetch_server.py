@@ -30,6 +30,7 @@ logger = getLogger('RangeFetch')
 fake_headers = _fake_headers.copy()
 # Set 'keep-alive'
 fake_headers['Connection'] = 'keep-alive'
+del fake_headers['Accept-Encoding']
 
 class LocalTCPServer(SocketServer.ThreadingTCPServer):
 
@@ -84,7 +85,6 @@ class RangeFetch():
     http = None
     timeout = urllib3.Timeout(connect=1, read=2)
     pool_size = 24
-    headers = fake_headers.copy()
 
     down_rate_min = 1024 * 160 # B/s
     down_rate_max = 1024 * 360
@@ -101,6 +101,9 @@ class RangeFetch():
         self.url = handler.url
         self.scheme = handler.url_parts.scheme
         self.netloc = handler.url_parts.netloc
+        self.headers = dict((k.title(), v) for k, v in handler.headers.items())
+        self.headers['Host'] = self.netloc
+        self.headers.update(fake_headers)
 
         self.range_start = range_start
         self.range_end = range_end
