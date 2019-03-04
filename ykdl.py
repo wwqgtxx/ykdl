@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-try:
-    import ykdl
-except(ImportError):
-    import sys
-    import os
+import sys
+import os
 
-    _srcdir = '%s/' % os.path.dirname(os.path.realpath(__file__))
-    _filepath = os.path.dirname(sys.argv[0])
-    sys.path.insert(1, os.path.join(_filepath, _srcdir))
-    sys.path.insert(1, os.path.join(_filepath, '../lib/requests_lib/'))
-    import ykdl
+_srcdir = '%s/' % os.path.dirname(os.path.realpath(__file__))
+_filepath = os.path.dirname(sys.argv[0])
+sys.path.insert(1, os.path.join(_filepath, _srcdir))
+sys.path.insert(1, os.path.join(_filepath, '../lib/requests_lib/'))
+sys.path.insert(1, os.path.join(_filepath, '../lib/node_lib/'))
+
+import ykdl
 
 import json
 import socket
@@ -19,7 +18,6 @@ import traceback
 import base64
 import os
 from argparse import ArgumentParser
-from multiprocessing.connection import Client, Connection
 
 import logging
 
