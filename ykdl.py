@@ -10,6 +10,21 @@ sys.path.insert(1, os.path.join(_filepath, _srcdir))
 sys.path.insert(1, os.path.join(_filepath, '../lib/requests_lib/'))
 sys.path.insert(1, os.path.join(_filepath, '../lib/node_lib/'))
 
+from ykdl.util import jsengine
+import node_vm2
+
+
+class NodeJSEngine(node_vm2.VM):
+    def __init__(self, source=''):
+        node_vm2.VM.__init__(self, code=source)
+        self.create()
+
+    eval = node_vm2.VM.run
+
+
+jsengine.JSEngine = NodeJSEngine
+jsengine.javascript_is_supported = True
+
 import ykdl
 
 import json
